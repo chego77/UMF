@@ -1,6 +1,8 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
-/*
- * Manage_roles Controller
+/**
+ * Manage roles
+ * @package A3M
+ * @subpackage Controllers
  */
 class Manage_roles extends CI_Controller {
 
@@ -19,27 +21,11 @@ class Manage_roles extends CI_Controller {
   }
 
   /**
-   * Manage Roles
+   * Roles overview
    */
   function index()
   {
-    // Enable SSL?
-    maintain_ssl($this->config->item("ssl_enabled"));
-
-    // Redirect unauthenticated users to signin page
-    if ( ! $this->authentication->is_signed_in())
-    {
-      redirect('account/sign_in/?continue='.urlencode(base_url().'admin/manage_roles'));
-    }
-
-    // Redirect unauthorized users to account profile page
-    if ( ! $this->authorization->is_permitted('retrieve_roles'))
-    {
-      redirect('account/profile');
-    }
-
-    // Retrieve sign in user
-    $data['account'] = $this->Account_model->get_by_id($this->session->userdata('account_id'));
+    $data = $this->authentication->initialize(TRUE, 'admin/manage_roles', NULL, 'retrieve_roles');
 
     // Get all permossions, roles, and role_permissions
     $roles = $this->Acl_role_model->get();
@@ -86,26 +72,31 @@ class Manage_roles extends CI_Controller {
 
 
   /**
-   * Manage Roles
+   * Create/Edit role
+   *
+   * If role if is passed in, it will allow to edit the given role.
+   * If NULL, then it will show form to create a new role.
+   *
+   * @param int $id Role ID
+   * 
    */
-  function save($id=null)
+  function save($id = NULL)
   {
-    // Keep track if this is a new role
+     // Keep track if this is a new role
     $is_new = empty($id);
 
-    // Enable SSL?
-    maintain_ssl($this->config->item("ssl_enabled"));
+    $data = $this->authentication->initialize(TRUE, 'admin/manage_roles');
 
-    // Redirect unauthenticated users to signin page
-    if ( ! $this->authentication->is_signed_in())
+    // Check if they are allowed to Update Roles
+    if ( ! $this->authorization->is_permitted('update_roles') && ! empty($id) )
     {
-      redirect('account/sign_in/?continue='.urlencode(base_url().'admin/manage_roles'));
+      redirect('admin/manage_permissions');
     }
 
-    // Redirect unauthorized users to account profile page
-    if ( ! $this->authorization->is_permitted('retrieve_roles'))
+    // Check if they are allowed to Create Roles
+    if ( ! $this->authorization->is_permitted('create_roles') && empty($id) )
     {
-      redirect('account/profile');
+      redirect('admin/manage_permissions');
     }
 
     // Set action type (create or update role)
@@ -204,7 +195,7 @@ class Manage_roles extends CI_Controller {
    * Check if the role name exist
    *
    * @access public
-   * @param string
+   * @param string $role_name
    * @return bool
    */
   function name_check($role_name)
@@ -212,7 +203,5 @@ class Manage_roles extends CI_Controller {
     return $this->Acl_role_model->get_by_name($role_name) ? TRUE : FALSE;
   }
 }
-
-
 /* End of file Manage_roles.php */
 /* Location: ./application/controllers/admin/Manage_roles.php */

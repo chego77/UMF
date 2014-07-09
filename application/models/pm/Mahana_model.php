@@ -1,5 +1,24 @@
-<?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
+<?php  
+/**
+ * Mahana Messaging Library for CodeIgniter
+ *
+ * CI library for linking to application's existing user table and
+ * creating basis of an internal messaging system. No views or controllers
+ * included.
+ *
+ * @author      Jeff Madsen
+ *              jrmadsen67@gmail.com
+ *              http://www.codebyjeff.com
+ * 
+ */
+if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
+/**
+ * Mahana Messaging Model
+ *
+ * @package Mahana Messaging
+ * @subpackage Models
+ */
 class Mahana_model extends CI_Model
 {
     /**
@@ -539,10 +558,17 @@ class Mahana_model extends CI_Model
     {
         $this->db->join($this->db->dbprefix . 'msg_messages',
                         $this->db->dbprefix . 'msg_messages.id = '.$this->db->dbprefix . 'msg_status.message_id');
-        $this->db->delete($this->db->dbprefix . 'msg_status', array($this->db->dbprefix .'msg_messages.thread_id' => $thread_id, $this->db->dbprefix . 'msg_status.user_id' => $user_id));
-
+        $list = $this->db->get_where($this->db->dbprefix . 'msg_status', array($this->db->dbprefix . 'msg_messages.thread_id' => $thread_id, $this->db->dbprefix . 'msg_status.user_id' => $user_id))->result();
+        
+        foreach($list AS $item)
+        {
+            $this->db->where(array('message_id' => $item->message_id, 'user_id' => $item->user_id));
+        }
+        $this->db->delete($this->db->dbprefix . 'msg_status');
+        
         return TRUE;
     }
 }
 
-/* end of file mahana_model.php */
+/* End of file mahana_model.php */
+/* Location: ./application/models/pm/mahana_model.php */

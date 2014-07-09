@@ -1,23 +1,29 @@
-<?php  if ( ! defined('BASEPATH')) exit('No direct script access allowed');
+<?php  
 /**
-* Name:        Mahana Messaging Library for CodeIgniter
-*
-* Author:      Jeff Madsen
-*              jrmadsen67@gmail.com
-*              http://www.codebyjeff.com
-*
-* Location:    will be on github shortly
-*
-* Description: CI library for linking to application's existing user table and
-*              creating basis of an internal messaging system. No views or controllers
-*              included.
-*
-*              DO CHECK the README.txt for setup instructions and notes!
-*
-*/
+ * Mahana Messaging Library for CodeIgniter
+ *
+ * CI library for linking to application's existing user table and
+ * creating basis of an internal messaging system. No views or controllers
+ * included.
+ *
+ * @author      Jeff Madsen
+ *              jrmadsen67@gmail.com
+ *              http://www.codebyjeff.com
+ * 
+ */
+if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
+/**
+ * Mahana Messaging Library
+ *
+ * @package Mahana Messaging
+ * @subpackage Libraries
+ */
 class Mahana_messaging
 {
+    /**
+     * Constructor
+     */
     public function __construct()
     {
         $this->ci =& get_instance();
@@ -357,7 +363,7 @@ class Mahana_messaging
             return $this->_invalid_id(MSG_ERR_INVALID_THREAD_ID);
         }
 
-        if ($participants = $this->ci->Mahana_model-> get_participant_list($thread_id, $sender_id))
+        if ($participants = $this->ci->Mahana_model->get_participant_list($thread_id, $sender_id))
         {
             return $this->_success($participants);
         }
@@ -410,7 +416,7 @@ class Mahana_messaging
                 $user = $this->ci->Account_model->get_by_username($username);
                 if(isset($user->id))
                 {
-                    $return[$user->id];
+                    $return[$user->id] = $user->id;
                 }
             }
             return $return;
@@ -499,3 +505,5 @@ class Mahana_messaging
         );
     }
 }
+/* End of file Mahana_messaging.php */
+/* Location: ./application/libraries/pm/Mahana_messaging.php */

@@ -1,6 +1,15 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
-class Account_details_model extends CI_Model {
+/**
+ * Account_details_model
+ *
+ * Model to retrieve and update more detailed information about user.
+ *
+ * @package A3M
+ * @subpackage Models
+ */
+class Account_details_model extends CI_Model
+{
 
 	/**
 	 * Get details for all account
@@ -97,23 +106,6 @@ class Account_details_model extends CI_Model {
 			$result = $this->ref_zoneinfo_model->get_by_country($attributes['country']);
 			if (isset($result[0])) $attributes['timezone'] = $result[0]->zoneinfo;
 		}
-		// At this point, if country is still not determined, use ip address to determine country
-		if ( ! isset($attributes['country']))
-		{
-			$this->load->model('account/ref_iptocountry_model');
-			if ($country = $this->ref_iptocountry_model->get_by_ip($this->input->ip_address()))
-			{
-				$attributes['country'] = $country;
-
-				// At this point, if timezone is still not determined, use ip detected country to determine timezone
-				if ( ! isset($attributes['timezone']))
-				{
-					$this->load->model('account/ref_zoneinfo_model');
-					$result = $this->ref_zoneinfo_model->get_by_country($attributes['country']);
-					if (isset($result[0])) $attributes['timezone'] = $result[0]->zoneinfo;
-				}
-			}
-		}
 
 		// Update
 		if ($this->get_by_account_id($account_id))
@@ -130,6 +122,5 @@ class Account_details_model extends CI_Model {
 	}
 
 }
-
 /* End of file Account_details_model.php */
 /* Location: ./application/models/account/Account_details_model.php */

@@ -14,7 +14,7 @@
  */
 class Hybrid_Providers_Facebook extends Hybrid_Provider_Model
 {
-	// default permissions, and alot of them. You can change them from the configuration by setting the scope to what you want/need
+	// default permissions, and a lot of them. You can change them from the configuration by setting the scope to what you want/need
 	public $scope = "email, user_about_me, user_birthday, user_hometown, user_website, read_stream, offline_access, publish_stream, read_friendlists";
 
 	/**
@@ -94,6 +94,22 @@ class Hybrid_Providers_Facebook extends Hybrid_Provider_Model
 		if ( isset( $_REQUEST['error'] ) && $_REQUEST['error'] == "access_denied" ){ 
 			throw new Exception( "Authentication failed! The user denied your request.", 5 );
 		}
+
+		// in case we are using iOS/Facebook reverse authentication
+		if(isset($_REQUEST['access_token'])){
+			$this->token("access_token",  $_REQUEST['access_token'] );
+			$this->api->setAccessToken( $this->token("access_token") );
+			$this->api->setExtendedAccessToken();
+			$access_token = $this->api->getAccessToken();
+
+			if( $access_token ){
+				$this->token("access_token", $access_token );
+				$this->api->setAccessToken( $access_token );
+			}
+
+			$this->api->setAccessToken( $this->token("access_token") );
+		}
+
 		
 		// if auth_type is used, then an auth_nonce is passed back, and we need to check it.
 		if(isset($_REQUEST['auth_nonce'])){
@@ -143,7 +159,7 @@ class Hybrid_Providers_Facebook extends Hybrid_Provider_Model
 			throw new Exception( "User profile request failed! {$this->providerId} returned an error: $e", 6 );
 		} 
 
-		// if the provider identifier is not recived, we assume the auth has failed
+		// if the provider identifier is not received, we assume the auth has failed
 		if ( ! isset( $data["id"] ) ){ 
 			throw new Exception( "User profile request failed! {$this->providerId} api returned an invalid response.", 6 );
 		}
@@ -202,7 +218,7 @@ class Hybrid_Providers_Facebook extends Hybrid_Provider_Model
 	function getUserContacts()
 	{
 		try{ 
-			$response = $this->api->api('/me/friends'); 
+			$response = $this->api->api('/me/friends?fields=link,name'); 
 		}
 		catch( FacebookApiException $e ){
 			throw new Exception( "User contacts request failed! {$this->providerId} returned an error: $e" );
@@ -219,7 +235,7 @@ class Hybrid_Providers_Facebook extends Hybrid_Provider_Model
 
 			$uc->identifier  = (array_key_exists("id",$item))?$item["id"]:"";
 			$uc->displayName = (array_key_exists("name",$item))?$item["name"]:"";
-			$uc->profileURL  = "https://www.facebook.com/profile.php?id=" . $uc->identifier;
+			$uc->profileURL  = (array_key_exists("link",$item))?$item["link"]:"https://www.facebook.com/profile.php?id=" . $uc->identifier;
 			$uc->photoURL    = "https://graph.facebook.com/" . $uc->identifier . "/picture?width=150&height=150";
 
 			$contacts[] = $uc;

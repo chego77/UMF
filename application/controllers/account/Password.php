@@ -1,8 +1,20 @@
-<?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
-/*
- * Account_password Controller
+<?php
+/**
+ * A3M (Account Authentication & Authorization) is a CodeIgniter 3.x package.
+ * It gives you the CRUD to get working right away without too much fuss and tinkering!
+ * Designed for building webapps from scratch without all that tiresome login / logout / admin stuff thats always required.
+ *
+ * @link https://github.com/donjakobo/A3M GitHub repository
  */
-class Password extends CI_Controller {
+if ( ! defined('BASEPATH')) exit('No direct script access allowed');
+/**
+ * Password manager
+ *
+ * @package A3M
+ * @subpackage Controllers
+ */
+class Password extends CI_Controller
+{
 
 	/**
 	 * Constructor
@@ -19,27 +31,19 @@ class Password extends CI_Controller {
 	}
 
 	/**
-	 * Account password
+	 * Account password manager
+	 *
+	 * Allows users to change their password
 	 */
 	function index()
 	{
-		// Enable SSL?
-		maintain_ssl($this->config->item("ssl_enabled"));
-
-		// Redirect unauthenticated users to signin page
-		if ( ! $this->authentication->is_signed_in())
-		{
-			redirect('account/sign_in/?continue='.urlencode(base_url().'account/password'));
-		}
-
-		// Retrieve sign in user
-		$data['account'] = $this->Account_model->get_by_id($this->session->userdata('account_id'));
+		$data = $this->authentication->initialize(TRUE, 'account/password');
 
 		// No access to users without a password
 		if ( ! $data['account']->password) redirect('');
 
 		### Setup form validation
-		$this->form_validation->set_error_delimiters('<span class="field_error">', '</span>');
+		$this->form_validation->set_error_delimiters('<span class="alert alert-danger">', '</span>');
 		$this->form_validation->set_rules(array(array('field' => 'password_new_password', 'label' => 'lang:password_new_password', 'rules' => 'trim|required|min_length[6]'), array('field' => 'password_retype_new_password', 'label' => 'lang:password_retype_new_password', 'rules' => 'trim|required|matches[password_new_password]')));
 
 		### Run form validation
@@ -54,9 +58,6 @@ class Password extends CI_Controller {
 		$data['content'] = $this->load->view('account/account_password', $data, TRUE);
 		$this->load->view('template', $data);
 	}
-
 }
-
-
 /* End of file Ppassword.php */
 /* Location: ./application/controllers/account/Password.php */

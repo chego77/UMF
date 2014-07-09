@@ -1,9 +1,20 @@
-<?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
-/*
- * Validate Controller
+<?php
+/**
+ * A3M (Account Authentication & Authorization) is a CodeIgniter 3.x package.
+ * It gives you the CRUD to get working right away without too much fuss and tinkering!
+ * Designed for building webapps from scratch without all that tiresome login / logout / admin stuff thats always required.
+ *
+ * @link https://github.com/donjakobo/A3M GitHub repository
  */
-class Validate extends CI_Controller {
-    
+if ( ! defined('BASEPATH')) exit('No direct script access allowed');
+/**
+ * E-mail validation
+ *
+ * @package A3M
+ * @subpackage Controllers
+ */
+class Validate extends CI_Controller
+{
     function __construct()
     {
 	parent::__construct();
@@ -54,7 +65,60 @@ class Validate extends CI_Controller {
             redirect('');
         }
     }
+    
+    /**
+     * Send validation e-mail again
+     * @param string $user username or e-mail
+     */
+    public function resend($username_email)
+    {
+	if($this->config->item('account_email_validate'))
+	{
+	    //first find user id
+	    $account = $this->Account_model->get_by_username_email($username_email);
+	    $authentication_url = site_url('account/validate?user_id=' . $account->id . '&token='. sha1($account->id . $account->createdon . $this->config->item('password_reset_secret')));
+	    
+	    // Load email library
+	    $this->load->library('email');
+	    
+	    // Set up email preferences
+	    $config['mailtype'] = 'html';
+	    
+	    // Initialise email lib
+	    $this->email->initialize($config);
+	    
+	    // Send the authentication email
+	    $this->email->from($this->config->item('account_email_confirm_sender'), lang('website_title'));
+	    $this->email->to($account->email);
+	    $this->email->subject(sprintf(lang('sign_up_email_subject'), lang('website_title')));
+	    $this->email->message($this->load->view('account/account_validation_email', array(
+		'username' => $account->username,
+		'authentication_url' => anchor($authentication_url, $authentication_url)
+	    ), TRUE));
+	    if($this->email->send())
+	    {
+		// Load reset password sent view
+		$data['content'] = $this->load->view('account/account_validation_resend', isset($data) ? $data : NULL, TRUE);
+		$this->load->view('template', $data);
+	    }
+	    else
+	    {
+		if(ENVIRONMENT == 'development')
+		{
+		    echo($this->email->print_debugger());
+		}
+		else
+		{
+		    show_error('There was an error sending the e-mail. Please contact the webmaster.');
+		}
+	    }
+	}
+	else
+	{
+	    //e-mail validation is not active so return back to sing in
+	    redirect(base_url("account/sign_in"));
+	}
+    }
 }
-
 /* End of file Validate.php */
 /* Location: ./application/controllers/account/Validate.php */

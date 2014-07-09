@@ -1,9 +1,20 @@
-<?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
-/*
- * Forgot_password Controller
+<?php
+/**
+ * A3M (Account Authentication & Authorization) is a CodeIgniter 3.x package.
+ * It gives you the CRUD to get working right away without too much fuss and tinkering!
+ * Designed for building webapps from scratch without all that tiresome login / logout / admin stuff thats always required.
+ *
+ * @link https://github.com/donjakobo/A3M GitHub repository
  */
-class Forgot_password extends CI_Controller {
-
+if ( ! defined('BASEPATH')) exit('No direct script access allowed');
+/**
+ * Forgot password page
+ * 
+ * @package A3M
+ * @subpackage Controllers
+ */
+class Forgot_password extends CI_Controller
+{
 	/**
 	 * Constructor
 	 */
@@ -37,7 +48,7 @@ class Forgot_password extends CI_Controller {
 
 		// Setup form validation
 		// max length as per IETF (http://www.rfc-editor.org/errata_search.php?rfc=3696&eid=1690)
-		$this->form_validation->set_error_delimiters('<span class="field_error">', '</span>');
+		$this->form_validation->set_error_delimiters('<span class="alert alert-danger">', '</span>');
 		$this->form_validation->set_rules(array(
 			array(
 				'field' => 'forgot_password_username_email',
@@ -89,7 +100,7 @@ class Forgot_password extends CI_Controller {
 					// Send reset password email
 					$this->email->from($this->config->item('password_reset_email'), lang('reset_password_email_sender'));
 					$this->email->to($account->email);
-					$this->email->subject(lang('reset_password_email_subject'));
+					$this->email->subject(sprintf(lang('reset_password_email_subject'), lang('website_title')));
 					$this->email->message($this->load->view('account/reset_password_email', array(
 						'username' => $account->username,
 						'password_reset_url' => anchor($password_reset_url, $password_reset_url)
@@ -98,15 +109,20 @@ class Forgot_password extends CI_Controller {
 					{
 						// Load reset password sent view
 						$data['content'] = $this->load->view('account/reset_password_sent', isset($data) ? $data : NULL, TRUE);
-						$this->load->view('template', $data);
 					}
 					else
 					{
-						//if the email could not be sent it will display the error
-						//should not happen if you have email configured correctly
-						echo $this->email->print_debugger();
+						if(ENVIRONMENT == 'development')
+						{
+							$data['content'] = $this->email->print_debugger();
+						}
+						else
+						{
+							show_error('There was an error sending the e-mail. Please contact the webmaster.');
+						}
 					}
 					
+					$this->load->view('template', $data);
 					return;
 				}
 			}
@@ -121,7 +137,17 @@ class Forgot_password extends CI_Controller {
 		$data['content'] = $this->load->view('account/forgot_password', isset($data) ? $data : NULL, TRUE);
 		$this->load->view('template', $data);
 	}
-
+	
+	/**
+	 * Will check for username or e-mail
+	 *
+	 * Will check if the username or e-mail is available and return boolean value.
+	 * This is for AJAX requests.
+	 * 
+	 * @access public
+	 * @param object $str Possible username or e-mail to be checked
+	 * @return boolean
+	 */
 	public function check_username_or_email($str)
 	{
 		//are we checking an email address?
@@ -146,12 +172,8 @@ class Forgot_password extends CI_Controller {
 				$this->form_validation->set_message('check_username_or_email', 'Invalid username format');
 				return FALSE;
 			}
-
 		}
-
 	}
-
 }
-
 /* End of file Forgot_password.php */
 /* Location: ./application/controllers/account/Forgot_password.php */

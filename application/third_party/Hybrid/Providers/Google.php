@@ -29,6 +29,12 @@ class Hybrid_Providers_Google extends Hybrid_Provider_Model_OAuth2
 		$this->api->authorize_url  = "https://accounts.google.com/o/oauth2/auth";
 		$this->api->token_url      = "https://accounts.google.com/o/oauth2/token";
 		$this->api->token_info_url = "https://www.googleapis.com/oauth2/v2/tokeninfo";
+        
+		// Override the redirect uri when it's set in the config parameters. This way we prevent
+		// redirect uri mismatches when authenticating with Google.
+		if( isset( $this->config['redirect_uri'] ) && ! empty( $this->config['redirect_uri'] ) ){
+			$this->api->redirect_uri = $this->config['redirect_uri'];
+		}
 	}
 
 	/**
@@ -37,7 +43,7 @@ class Hybrid_Providers_Google extends Hybrid_Provider_Model_OAuth2
 	function loginBegin()
 	{
 		$parameters = array("scope" => $this->scope, "access_type" => "offline");
-		$optionals  = array("scope", "access_type", "redirect_uri", "approval_prompt", "hd");
+		$optionals  = array("scope", "access_type", "redirect_uri", "approval_prompt", "hd", "state");
 
 		foreach ($optionals as $parameter){
 			if( isset( $this->config[$parameter] ) && ! empty( $this->config[$parameter] ) ){
@@ -62,12 +68,17 @@ class Hybrid_Providers_Google extends Hybrid_Provider_Model_OAuth2
 		// ask google api for user infos
 		if (strpos($this->scope, '/auth/userinfo.email') !== false) {
 			$verified = $this->api->api( "https://www.googleapis.com/oauth2/v2/userinfo" );
+
+			if ( ! isset( $verified->id ) || isset( $verified->error ) )
+				$verified = new stdClass();
+		} else {
+			$verified = $this->api->api( "https://www.googleapis.com/plus/v1/people/me/openIdConnect" );
+
+			if ( ! isset( $verified->sub ) || isset( $verified->error ) )
+				$verified = new stdClass();
 		}
-		$response = $this->api->api( "https://www.googleapis.com/plus/v1/people/me" ); 		
-		
-		if ( ! isset( $verified->id ) || isset( $verified->error ) ){
-			$verified = new stdClass();
-		}
+
+		$response = $this->api->api( "https://www.googleapis.com/plus/v1/people/me" );
 		if ( ! isset( $response->id ) || isset( $response->error ) ){
 			throw new Exception( "User profile request failed! {$this->providerId} returned an invalid response.", 6 );
 		}
@@ -83,17 +94,36 @@ class Hybrid_Providers_Google extends Hybrid_Provider_Model_OAuth2
 		$this->user->profile->language      = (property_exists($response,'locale'))?$response->locale:((property_exists($verified,'locale'))?$verified->locale:"");
 		$this->user->profile->email         = (property_exists($response,'email'))?$response->email:((property_exists($verified,'email'))?$verified->email:"");
 		$this->user->profile->emailVerified = (property_exists($verified,'email'))?$verified->email:"";
+		if (property_exists($response, 'emails')) {
+			if (count($response->emails) == 1) {
+				$this->user->profile->email = $response->emails[0]->value;
+			} else {
+				foreach ($response->emails as $email) {
+					if ($email->type == 'account') {
+						$this->user->profile->email = $email->value;
+						break;
+					}
+				}
+			}
+		}
 		$this->user->profile->phone 		= (property_exists($response,'phone'))?$response->phone:"";
 		$this->user->profile->country 		= (property_exists($response,'country'))?$response->country:"";
 		$this->user->profile->region 		= (property_exists($response,'region'))?$response->region:"";
 		$this->user->profile->zip	 		= (property_exists($response,'zip'))?$response->zip:"";
 		if( property_exists($response,'placesLived') ){
-			$this->user->profile->city 		= ""; 
+			$this->user->profile->city 	= ""; 
 			$this->user->profile->address	= ""; 
 			foreach($response->placesLived as $c){
-				if($c->primary == true){ 
-					$this->user->profile->address 	= $c->value;
-					$this->user->profile->city 		= $c->value;
+				if(property_exists($c,'primary')){
+					if($c->primary == true){ 
+						$this->user->profile->address 	= $c->value;
+						$this->user->profile->city 	= $c->value;
+					}
+				}else{
+					if(property_exists($c,'value')){
+						$this->user->profile->address 	= $c->value;
+						$this->user->profile->city 	= $c->value;
+					}	
 				}
 			}
 		}
@@ -153,45 +183,46 @@ class Hybrid_Providers_Google extends Hybrid_Provider_Model_OAuth2
 	
 			if( ! $response ){
 				return ARRAY();
-			}		
-	
-			foreach( $response->feed->entry as $idx => $entry ){
-				$uc = new Hybrid_User_Contact();
-				$uc->email 			= isset($entry->{'gd$email'}[0]->address) ? (string) $entry->{'gd$email'}[0]->address : ''; 
-				$uc->displayName 	= isset($entry->title->{'$t'}) ? (string) $entry->title->{'$t'} : '';  
-				$uc->identifier		= ($uc->email!='')?$uc->email:'';
-				$uc->description 	= '';
-				if( property_exists($entry,'link') ){
-					/* Attention - Gmail requests must be made authenticated against photoURL or profileURL,
-					// we indicate this by adding parameter 'auth' here, sample request:
-					// $this->api->api( $uc->photoURL ); //-> returns photo bytes
-					*/
-					if(is_array($entry->link)){
-						foreach($entry->link as $l){
-							if( property_exists($l,'gd$etag') && $l->type=="image/*"){
-								$uc->photoURL = $l->href. http_build_query( array('auth' => '1') );
-							} else if($l->type=="self"){
-								$uc->profileURL = $l->href. http_build_query( array('auth' => '1') );
+			}
+
+			if (isset($response->feed->entry)) {
+				foreach( $response->feed->entry as $idx => $entry ){
+					$uc = new Hybrid_User_Contact();
+					$uc->email 			= isset($entry->{'gd$email'}[0]->address) ? (string) $entry->{'gd$email'}[0]->address : '';
+					$uc->displayName 	= isset($entry->title->{'$t'}) ? (string) $entry->title->{'$t'} : '';
+					$uc->identifier		= ($uc->email!='')?$uc->email:'';
+					$uc->description 	= '';
+					if( property_exists($entry,'link') ){
+						/**
+						 * sign links with access_token
+						 */
+						if(is_array($entry->link)){
+							foreach($entry->link as $l){
+								if( property_exists($l,'gd$etag') && $l->type=="image/*"){
+									$uc->photoURL = $this->addUrlParam($l->href, array('access_token' => $this->api->access_token));
+								} else if($l->type=="self"){
+									$uc->profileURL = $this->addUrlParam($l->href, array('access_token' => $this->api->access_token));
+								}
 							}
 						}
+					} else {
+						$uc->profileURL = '';
 					}
-				} else {
-					$uc->profileURL = '';
-				}
-				if( property_exists($response,'website') ){
-					if(is_array($response->website)){
-						foreach($response->website as $w){
-							if($w->primary == true) $uc->webSiteURL = $w->value;
+					if( property_exists($response,'website') ){
+						if(is_array($response->website)){
+							foreach($response->website as $w){
+								if($w->primary == true) $uc->webSiteURL = $w->value;
+							}
+						} else {
+							$uc->webSiteURL = $response->website->value;
 						}
 					} else {
-						$uc->webSiteURL = $response->website->value;
+						$uc->webSiteURL = '';
 					}
-				} else {
-					$uc->webSiteURL = '';
+
+					$contacts[] = $uc;
 				}
-	
-				$contacts[] = $uc;
-			}  
+			}
 		}
 		
 		// Google social contacts
@@ -222,4 +253,23 @@ class Hybrid_Providers_Google extends Hybrid_Provider_Model_OAuth2
 		
 		return $contacts;
  	}
+
+	/**
+	 * Add to the $url new parameters
+	 * @param string $url
+	 * @param array $params
+	 * @return string
+	 */
+	function addUrlParam($url, array $params)
+	{
+		$query = parse_url($url, PHP_URL_QUERY);
+
+		// Returns the URL string with new parameters
+		if( $query ) {
+			$url .= '&' . http_build_query( $params );
+		} else {
+			$url .= '?' . http_build_query( $params );
+		}
+		return $url;
+	}
 }

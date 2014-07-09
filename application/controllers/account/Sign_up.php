@@ -1,6 +1,17 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
-/*
- * Sign_up Controller
+<?php
+/**
+ * A3M (Account Authentication & Authorization) is a CodeIgniter 3.x package.
+ * It gives you the CRUD to get working right away without too much fuss and tinkering!
+ * Designed for building webapps from scratch without all that tiresome login / logout / admin stuff thats always required.
+ *
+ * @link https://github.com/donjakobo/A3M GitHub repository
+ */
+defined('BASEPATH') OR exit('No direct script access allowed');
+/**
+ * Sign up
+ *
+ * @package A3M
+ * @subpackage Controllers
  */
 class Sign_up extends CI_Controller {
 
@@ -39,8 +50,23 @@ class Sign_up extends CI_Controller {
 		if ($recaptcha_result === TRUE) $this->session->set_userdata('sign_up_recaptcha_pass', TRUE);
 
 		// Setup form validation
-		$this->form_validation->set_error_delimiters('<span class="field_error">', '</span>');
-		$this->form_validation->set_rules(array(array('field' => 'sign_up_username', 'label' => 'lang:sign_up_username', 'rules' => 'trim|required|alpha_dash|min_length[2]|max_length[24]|callback_username_check'), array('field' => 'sign_up_password', 'label' => 'lang:sign_up_password', 'rules' => 'trim|required|min_length[6]'), array('field' => 'sign_up_email', 'label' => 'lang:sign_up_email', 'rules' => 'trim|required|valid_email|max_length[160]|callback_email_check'), array('field' => 'sign_up_confirm_password', 'label' => 'lang:sign_up_password_confirm', 'rules' => 'trim|required|min_length[6]|matches[sign_up_password]'), array('field' => 'sign_up_terms', 'label' => 'lang:sign_up_terms_confirm', 'rules' => 'trim|required')));
+		$this->form_validation->set_error_delimiters('<span class="alert alert-danger">', '</span>');
+		$this->form_validation->set_rules(array(
+			array('field' => 'sign_up_username',
+			      'label' => 'lang:sign_up_username',
+			      'rules' => 'trim|required|alpha_dash|min_length[2]|max_length[24]|callback_username_check'),
+			array('field' => 'sign_up_password',
+			      'label' => 'lang:sign_up_password',
+			      'rules' => 'trim|required|min_length[6]'),
+			array('field' => 'sign_up_email',
+			      'label' => 'lang:sign_up_email',
+			      'rules' => 'trim|required|valid_email|max_length[160]|callback_email_check'),
+			array('field' => 'sign_up_confirm_password',
+			      'label' => 'lang:sign_up_password_confirm',
+			      'rules' => 'trim|required|min_length[6]|matches[sign_up_password]'),
+			array('field' => 'sign_up_terms',
+			      'label' => 'lang:sign_up_terms_confirm',
+			      'rules' => 'trim|required')));
 
 		// Run form validation
 		if (($this->form_validation->run() === TRUE) && ($this->config->item("sign_up_enabled")))
@@ -91,13 +117,26 @@ class Sign_up extends CI_Controller {
 					), TRUE));
 					if($this->email->send())
 					{
-						// Load reset password sent view
+						if($this->config->item("sign_up_auto_sign_in"))
+						{
+							// Run sign in routine
+							$this->authentication->sign_in($this->input->post('sign_in_username_email', TRUE), $this->input->post('sign_in_password', TRUE), $this->input->post('sign_in_remember', TRUE));
+						}
+						
+						// Load confirmation view
 						$data['content'] = $this->load->view('account/account_validation_send', isset($data) ? $data : NULL, TRUE);
 						$this->load->view('template', $data);
 					}
 					else
 					{
-						echo($this->email->print_debugger());
+						if(ENVIRONMENT == 'development')
+						{
+							$data['content'] = $this->email->print_debugger();
+						}
+						else
+						{
+							show_error('There was an error sending the e-mail. Please contact the webmaster.');
+						}
 					}
 					
 					return;
@@ -129,7 +168,7 @@ class Sign_up extends CI_Controller {
 	 * Check if a username exist
 	 *
 	 * @access public
-	 * @param string
+	 * @param string $username
 	 * @return bool
 	 */
 	function username_check($username)
@@ -152,7 +191,7 @@ class Sign_up extends CI_Controller {
 	 * Check if an email exist
 	 *
 	 * @access public
-	 * @param string
+	 * @param string $email
 	 * @return bool
 	 */
 	function email_check($email)

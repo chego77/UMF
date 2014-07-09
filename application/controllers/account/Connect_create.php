@@ -1,8 +1,19 @@
-<?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
-/*
- * Connect_create Controller
+<?php
+/**
+ * A3M (Account Authentication & Authorization) is a CodeIgniter 3.x package.
+ * It gives you the CRUD to get working right away without too much fuss and tinkering!
+ * Designed for building webapps from scratch without all that tiresome login / logout / admin stuff thats always required.
+ *
+ * @link https://github.com/donjakobo/A3M GitHub repository
  */
-class Connect_create extends CI_Controller {
+if ( ! defined('BASEPATH')) exit('No direct script access allowed');
+/**
+ * Create connection between provider and our site
+ * @package A3M
+ * @subpackage Controllers
+ */
+class Connect_create extends CI_Controller
+{
 
 	/**
 	 * Constructor
@@ -18,7 +29,9 @@ class Connect_create extends CI_Controller {
 		$this->load->language(array('general', 'account/connect_third_party'));
 	}
 
-	/*
+	/**
+	 * Creates a new entry in the providers table so that user is remembered
+	 *
 	 * @access public
 	 * @return void
 	 */
@@ -36,9 +49,10 @@ class Connect_create extends CI_Controller {
 		$provider = array_keys($data['connect_create']);
 		$provider = $provider[0];
 		$data['connect_create'] = $this->session->userdata('connect_create');
+		$data['connect_create'] = $data['connect_create'][$provider];
 
 		// Setup form validation
-		$this->form_validation->set_error_delimiters('<span class="field_error">', '</span>');
+		$this->form_validation->set_error_delimiters('<span class="alert alert-danger">', '</span>');
 		$this->form_validation->set_rules(array(array('field' => 'connect_create_username', 'label' => 'lang:connect_create_username', 'rules' => 'trim|required|alpha_numeric|min_length[2]|max_length[16]'), array('field' => 'connect_create_email', 'label' => 'lang:connect_create_email', 'rules' => 'trim|required|valid_email|max_length[160]')));
 
 		// Run form validation
@@ -84,7 +98,7 @@ class Connect_create extends CI_Controller {
 	 * Check if a username exist
 	 *
 	 * @access public
-	 * @param string
+	 * @param string $username
 	 * @return bool
 	 */
 	function username_check($username)
@@ -96,7 +110,7 @@ class Connect_create extends CI_Controller {
 	 * Check if an email exist
 	 *
 	 * @access public
-	 * @param string
+	 * @param string $email
 	 * @return bool
 	 */
 	function email_check($email)

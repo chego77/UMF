@@ -1,6 +1,17 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
-/*
- * Sign_in Controller
+<?php
+/**
+ * A3M (Account Authentication & Authorization) is a CodeIgniter 3.x package.
+ * It gives you the CRUD to get working right away without too much fuss and tinkering!
+ * Designed for building webapps from scratch without all that tiresome login / logout / admin stuff thats always required.
+ *
+ * @link https://github.com/donjakobo/A3M GitHub repository
+ */
+defined('BASEPATH') OR exit('No direct script access allowed');
+/**
+ * Sign in
+ *
+ * @package A3M
+ * @subpackage Controllers
  */
 class Sign_in extends CI_Controller {
 
@@ -15,7 +26,7 @@ class Sign_in extends CI_Controller {
 		$this->load->helper(array('language', 'account/ssl', 'url'));
 		$this->load->library(array('account/authentication', 'account/authorization', 'account/recaptcha', 'form_validation'));
 		$this->load->model('account/Account_model');
-		$this->load->language(array('account/sign_in', 'account/connect_third_party'));
+		$this->load->language(array('general', 'account/sign_in', 'account/connect_third_party'));
 	}
 
 	/**
@@ -39,7 +50,7 @@ class Sign_in extends CI_Controller {
 		$recaptcha_result = $this->recaptcha->check();
 
 		// Setup form validation
-		$this->form_validation->set_error_delimiters('<span class="field_error">', '</span>');
+		$this->form_validation->set_error_delimiters('<span class="alert alert-danger">', '</span>');
 		$this->form_validation->set_rules(array(
 			array(
 				'field' => 'sign_in_username_email',

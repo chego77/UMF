@@ -1,7 +1,18 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
-class Account_model extends CI_Model {
-	
+/**
+ * Account_model
+ *
+ * Model for basic interaction with user accounts.
+ *
+ * @package A3M
+ * @subpackage Models
+ */
+class Account_model extends CI_Model
+{
+	/**
+	 * Constructor
+	 */
 	function __construct()
 	{
 		parent::__construct();
@@ -79,7 +90,8 @@ class Account_model extends CI_Model {
 	 *
 	 * @access public
 	 * @param string $username
-	 * @param string $hashed_password
+	 * @param string $email
+-	 * @param string $password Password in plain. Will be hashed before inserted into DB
 	 * @return int insert id
 	 */
 	function create($username, $email = NULL, $password = NULL)
@@ -135,7 +147,7 @@ class Account_model extends CI_Model {
 	 *
 	 * @access public
 	 * @param int $account_id
-	 * @param int $hashed_password
+	 * @param int $password_new
 	 * @return void
 	 */
 	function update_password($account_id, $password_new)
@@ -260,9 +272,7 @@ class Account_model extends CI_Model {
 	 * 
 	 * @access public
 	 * @param int $account_id
-	 * @return void
-	 *
-	 * @todo have return boolen for confirmation, just in case
+	 * @return boolean
 	 */
 	function verify($account_id)
 	{
@@ -298,7 +308,5 @@ class Account_model extends CI_Model {
 		return FALSE;
 	}
 }
-
-
 /* End of file Account_model.php */
 /* Location: ./application/models/account/Account_model.php */
